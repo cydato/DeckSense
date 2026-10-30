@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Windows-Subsystem, nicht Konsole: So kann nie ein Fenster erscheinen,
+         egal wer den Dienst startet. Als Konsolenprogramm hing das am
+         Startweg - über die Aufgabenplanung konnte ein schwarzes Fenster
+         stehenbleiben. Die Diagnosemodi holen sich die Konsole des Aufrufers
+         nachträglich, siehe ParentConsole und Entscheidung 0027. -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>DeckSense.Service</AssemblyName>
+    <RootNamespace>DeckSense.Service</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>DeckSense Sensordienst</Product>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Von [LibraryImport] verlangt: Der erzeugte Marshalling-Code ist unsafe.
+         Eigener unsicherer Code steht nicht im Projekt. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Nur die Beispieldatei wandert mit. Die echte appsettings.json enthält
+         Seriennummern und gehört weder ins Repository noch in ein verteiltes
+         Archiv - sie wird beim ersten Start erzeugt. Siehe Entscheidung 0016. -->
+    <None Update="appsettings.example.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="System.Management" Version="10.0.2" />
+  </ItemGroup>
+
+</Project>

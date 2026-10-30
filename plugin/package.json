@@ -1,0 +1,29 @@
+{
+  "name": "decksense-plugin",
+  "version": "1.0.0",
+  "description": "Stream-Deck-Plugin fÃ¼r DeckSense: zeigt Sensorwerte des Dienstes auf den Tasten.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "node tools/make-icons.mjs && rollup --config",
+    "icons": "node tools/make-icons.mjs",
+    "deploy": "node tools/deploy.mjs",
+    "pack": "streamdeck pack com.cydato.decksense.sdPlugin -o ../artifacts --force",
+    "watch": "rollup --config --watch --watch.onEnd=\"streamdeck restart com.cydato.decksense\""
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^3.0.4",
+    "@elgato/utils": "^0.6.2"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.10.4",
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/node": "^24.0.0",
+    "rollup": "^4.52.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.0"
+  }
+}

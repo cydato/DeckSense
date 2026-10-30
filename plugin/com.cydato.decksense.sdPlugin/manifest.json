@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "DeckSense",
+  "Version": "1.0.0.0",
+  "Author": "cydato",
+  "Description": "Shows hardware sensor values and FPS from the DeckSense service on your keys. Needs no administrator rights.",
+  "Category": "DeckSense",
+  "CategoryIcon": "imgs/plugin/category-icon",
+  "Icon": "imgs/plugin/marketplace",
+  "URL": "https://github.com/cydato/DeckSense",
+  "UUID": "com.cydato.decksense",
+  "SDKVersion": 3,
+  "CodePath": "bin/plugin.js",
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "enabled"
+  },
+  "Actions": [
+    {
+      "Name": "Sensor",
+      "UUID": "com.cydato.decksense.sensor",
+      "Icon": "imgs/actions/sensor/icon",
+      "Tooltip": "Shows one sensor value from the DeckSense service.",
+      "PropertyInspectorPath": "ui/sensor.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "imgs/actions/sensor/key",
+          "TitleAlignment": "middle"
+        }
+      ]
+    }
+  ]
+}

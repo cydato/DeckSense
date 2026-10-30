@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DeckSense.Service/DeckSense.Service.csproj" />
+  <Project Path="DeckSense.Setup/DeckSense.Setup.csproj" />
+</Solution>

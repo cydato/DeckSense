@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // Standard-Dekoratoren von TypeScript 5, nicht die alten
+    // experimentellen. Das SDK 3 nutzt genau diese Form.
+    "experimentalDecorators": false,
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "rootDir": "src",
+    "outDir": "com.cydato.decksense.sdPlugin/bin"
+  },
+  "include": ["src/**/*.ts"]
+}

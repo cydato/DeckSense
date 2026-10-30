@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>DeckSense Sensor</title>
+<style>
+  body {
+    margin: 0; padding: 12px;
+    background: #2d2d2d; color: #d8d8d8;
+    font: 13px/1.5 "Segoe UI", system-ui, sans-serif;
+  }
+  .zeile { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .zeile > label { flex: 0 0 96px; text-align: right; color: #969696; }
+  select, input[type=text], input[type=number] {
+    flex: 1 1 auto; min-width: 0;
+    background: #3d3d3d; color: #d8d8d8;
+    border: 1px solid #4a4a4a; border-radius: 4px;
+    padding: 5px 6px; font: inherit;
+  }
+  input[type=color] {
+    flex: 0 0 44px; height: 27px; padding: 1px;
+    background: #3d3d3d; border: 1px solid #4a4a4a; border-radius: 4px;
+  }
+  input[type=checkbox] { margin: 0; }
+  select:focus, input:focus { outline: 1px solid #7800ff; border-color: #7800ff; }
+  .hinweis { color: #969696; font-size: 12px; margin: 2px 0 10px 106px; }
+  .warnung { color: #ffb01f; }
+  .gruppe { border-top: 1px solid #3d3d3d; margin: 12px 0 10px; padding-top: 10px; }
+  .nebenan { display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; align-items: center; }
+  .nebenan > span { color: #787878; font-size: 12px; }
+  button {
+    background: #3d3d3d; color: #d8d8d8; border: 1px solid #4a4a4a;
+    border-radius: 4px; padding: 4px 9px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #474747; }
+</style>
+</head>
+<body>
+
+<div class="zeile">
+  <label for="sensor">Sensor</label>
+  <select id="sensor"><option value=""> - loading - </option></select>
+</div>
+
+<div class="zeile">
+  <label for="titel">Title</label>
+  <input id="titel" type="text" placeholder="empty = name from the API" maxlength="40">
+</div>
+
+<div class="hinweis" id="status"></div>
+
+<div class="gruppe"></div>
+
+<div class="zeile">
+  <label for="graph">History graph</label>
+  <div class="nebenan">
+    <input id="graph" type="checkbox" checked>
+    <select id="graphStil">
+      <option value="linie">Line</option>
+      <option value="balken">Bars</option>
+    </select>
+    <input id="graphFarbe" type="color" value="#7800ff">
+    <button id="farbeZurueck" type="button" title="Back to the default colour">↺</button>
+  </div>
+</div>
+
+<div class="hinweis">The last 60 values, about a minute.</div>
+
+<div class="gruppe"></div>
+
+<div class="zeile">
+  <label for="warnAb">Warn above</label>
+  <div class="nebenan">
+    <input id="warnAb" type="number" step="1" placeholder="default">
+    <span id="einheit"></span>
+  </div>
+</div>
+
+<div class="zeile">
+  <label for="kritischAb">Critical above</label>
+  <div class="nebenan">
+    <input id="kritischAb" type="number" step="1" placeholder="default">
+    <span id="einheit2"></span>
+  </div>
+</div>
+
+<div class="hinweis">Left empty: temperatures turn yellow from 70 °C and red from 85 °C.
+Percentages stay white unless you set a threshold yourself.</div>
+
+<script>
+  let ws = null;
+  let kontext = null;
+  let aktionsId = null;
+  let einstellungen = {};
+  let einheiten = {};
+
+  const feld = {
+    sensor: document.getElementById("sensor"),
+    titel: document.getElementById("titel"),
+    graph: document.getElementById("graph"),
+    graphStil: document.getElementById("graphStil"),
+    graphFarbe: document.getElementById("graphFarbe"),
+    warnAb: document.getElementById("warnAb"),
+    kritischAb: document.getElementById("kritischAb")
+  };
+  const status = document.getElementById("status");
+
+  // Von Stream Deck aufgerufen, sobald der Property Inspector geöffnet wird.
+  function connectElgatoStreamDeckSocket(port, uuid, registerEvent, info, actionInfo) {
+    kontext = uuid;
+
+    try {
+      const aktion = JSON.parse(actionInfo);
+      aktionsId = aktion.action;
+      einstellungen = (aktion.payload && aktion.payload.settings) || {};
+    } catch (e) {
+      einstellungen = {};
+    }
+
+    feld.titel.value = einstellungen.titel || "";
+    feld.graph.checked = einstellungen.graph !== false;
+    feld.graphStil.value = einstellungen.graphStil || "linie";
+    feld.graphFarbe.value = einstellungen.graphFarbe || "#7800ff";
+    feld.warnAb.value = einstellungen.warnAb === undefined ? "" : einstellungen.warnAb;
+    feld.kritischAb.value = einstellungen.kritischAb === undefined ? "" : einstellungen.kritischAb;
+
+    ws = new WebSocket("ws://127.0.0.1:" + port);
+
+    ws.onopen = function () {
+      ws.send(JSON.stringify({ event: registerEvent, uuid: uuid }));
+      anPlugin({ event: "getSensors" });
+    };
+
+    ws.onmessage = function (nachricht) {
+      let daten;
+      try {
+        daten = JSON.parse(nachricht.data);
+      } catch (e) {
+        return;
+      }
+
+      if (daten.event === "sendToPropertyInspector" && daten.payload && daten.payload.event === "sensors") {
+        listeFuellen(daten.payload);
+      }
+    };
+  }
+
+  function anPlugin(nutzlast) {
+    if (!ws || ws.readyState !== 1) { return; }
+    ws.send(JSON.stringify({
+      event: "sendToPlugin", action: aktionsId, context: kontext, payload: nutzlast
+    }));
+  }
+
+  function speichern() {
+    if (!ws || ws.readyState !== 1) { return; }
+    ws.send(JSON.stringify({ event: "setSettings", context: kontext, payload: einstellungen }));
+  }
+
+  function einheitZeigen() {
+    const e = einheiten[einstellungen.sensorId] || "";
+    document.getElementById("einheit").textContent = e;
+    document.getElementById("einheit2").textContent = e;
+  }
+
+  function listeFuellen(nutzlast) {
+    const vorhanden = einstellungen.sensorId || "";
+    feld.sensor.innerHTML = "";
+    einheiten = {};
+
+    if (!nutzlast.erreichbar) {
+      const option = document.createElement("option");
+      option.value = vorhanden;
+      option.textContent = vorhanden ? vorhanden + " (service unreachable)" : " - service unreachable - ";
+      feld.sensor.appendChild(option);
+      status.className = "hinweis warnung";
+      status.textContent = "The DeckSense service is not answering on 127.0.0.1:5891. Is it running?";
+      return;
+    }
+
+    const leer = document.createElement("option");
+    leer.value = "";
+    leer.textContent = " - please choose - ";
+    feld.sensor.appendChild(leer);
+
+    for (const eintrag of nutzlast.items || []) {
+      einheiten[eintrag.value] = eintrag.unit || "";
+      const option = document.createElement("option");
+      option.value = eintrag.value;
+      option.textContent = eintrag.label;
+      feld.sensor.appendChild(option);
+    }
+
+    feld.sensor.value = vorhanden;
+    status.className = "hinweis";
+    status.textContent = (nutzlast.items || []).length + " sensors, service " + (nutzlast.version || "?") + ".";
+    einheitZeigen();
+  }
+
+  function zahlOderNichts(wert) {
+    const t = wert.trim();
+    if (t === "") { return undefined; }
+    const n = Number(t);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  feld.sensor.addEventListener("change", function () {
+    einstellungen.sensorId = feld.sensor.value || undefined;
+    einheitZeigen();
+    speichern();
+  });
+
+  feld.titel.addEventListener("input", function () {
+    einstellungen.titel = feld.titel.value;
+    speichern();
+  });
+
+  feld.graph.addEventListener("change", function () {
+    einstellungen.graph = feld.graph.checked;
+    speichern();
+  });
+
+  feld.graphStil.addEventListener("change", function () {
+    einstellungen.graphStil = feld.graphStil.value;
+    speichern();
+  });
+
+  feld.graphFarbe.addEventListener("input", function () {
+    einstellungen.graphFarbe = feld.graphFarbe.value;
+    speichern();
+  });
+
+  document.getElementById("farbeZurueck").addEventListener("click", function () {
+    feld.graphFarbe.value = "#7800ff";
+    einstellungen.graphFarbe = undefined;
+    speichern();
+  });
+
+  feld.warnAb.addEventListener("input", function () {
+    einstellungen.warnAb = zahlOderNichts(feld.warnAb.value);
+    speichern();
+  });
+
+  feld.kritischAb.addEventListener("input", function () {
+    einstellungen.kritischAb = zahlOderNichts(feld.kritischAb.value);
+    speichern();
+  });
+</script>
+
+</body>
+</html>
